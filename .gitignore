@@ -1,0 +1,50 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# Python packaging & test caches
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Node & Frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/
+.npm
+.eslintcache
+
+# Environment variables & secrets (NEVER commit)
+.env
+.env.*
+!.env.example
+
+# Local storage and persistent datastores
+backend/uploads/
+backend/data/
+backend/chroma_db/
+*.sqlite
+*.sqlite3
+*.db
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
