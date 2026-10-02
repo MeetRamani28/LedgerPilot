@@ -1,11 +1,16 @@
 aiosqlite
 chromadb
+cohere
 fastapi
+groq
 httpx
+pillow
 pydantic
 pydantic-settings
+pypdfium2
 pytest
 python-dotenv
 sqlalchemy
 sqlmodel
+tenacity
 uvicorn

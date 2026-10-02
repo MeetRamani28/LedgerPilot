@@ -7,14 +7,19 @@ requires-python = ">=3.12"
 dependencies = [
     "aiosqlite",
     "chromadb",
+    "cohere",
     "fastapi",
+    "groq",
     "httpx",
+    "pillow",
     "pydantic",
     "pydantic-settings",
-    "python-dotenv",
+    "pypdfium2",
     "pytest",
+    "python-dotenv",
     "sqlalchemy",
     "sqlmodel",
+    "tenacity",
     "uvicorn",
 ]
 
