@@ -1,7 +1,11 @@
+aiosqlite
+chromadb
 fastapi
-uvicorn
+httpx
 pydantic
 pydantic-settings
-python-dotenv
 pytest
-httpx
+python-dotenv
+sqlalchemy
+sqlmodel
+uvicorn

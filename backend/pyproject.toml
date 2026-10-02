@@ -5,13 +5,17 @@ description = "LedgerPilot autonomous accounts-payable and invoice reconciliatio
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiosqlite",
+    "chromadb",
     "fastapi",
-    "uvicorn",
+    "httpx",
     "pydantic",
     "pydantic-settings",
     "python-dotenv",
     "pytest",
-    "httpx",
+    "sqlalchemy",
+    "sqlmodel",
+    "uvicorn",
 ]
 
 [tool.pytest.ini_options]
