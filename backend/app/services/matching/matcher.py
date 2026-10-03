@@ -155,10 +155,15 @@ class ThreeWayMatcher:
                 )
 
         # 4. Total Amount Variance Check
-        total_variance = round(abs(invoice.total_amount - po.total_amount), 2)
+        # Compare invoice total, or subtotal when tax is itemized and PO total is pre-tax
+        comp_total = invoice.total_amount
+        if invoice.tax_amount > 0 and abs(invoice.subtotal - po.total_amount) < abs(invoice.total_amount - po.total_amount):
+            comp_total = invoice.subtotal
+
+        total_variance = round(abs(comp_total - po.total_amount), 2)
         if total_variance > self.tolerance.total_tolerance_abs:
             anomalies.append(
-                f"Invoice total (${invoice.total_amount:.2f}) differs from PO total "
+                f"Invoice total (${comp_total:.2f}) differs from PO total "
                 f"(${po.total_amount:.2f}) by ${total_variance:.2f} (tolerance: ${self.tolerance.total_tolerance_abs:.2f})"
             )
 

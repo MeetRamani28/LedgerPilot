@@ -19,8 +19,10 @@ class LocalStorageService(IStorageService):
         content_type: str = "application/pdf",
     ) -> tuple[str, str]:
         # Generate safe unique key
+        import re
+        safe_stem = re.sub(r'[^\w\-_\.]', '_', Path(filename).stem)
         ext = Path(filename).suffix or ".pdf"
-        unique_name = f"{uuid.uuid4().hex}_{Path(filename).stem}{ext}"
+        unique_name = f"{uuid.uuid4().hex}_{safe_stem}{ext}"
         target_path = self.upload_dir / unique_name
 
         def _write():

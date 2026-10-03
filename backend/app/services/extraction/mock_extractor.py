@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 from app.schemas.invoice_extraction import ExtractedInvoice, ExtractedLineItem
 from app.services.extraction.base import IExtractionService
@@ -14,6 +15,21 @@ class MockExtractor(IExtractionService):
     ) -> ExtractedInvoice:
         if self.override_result:
             return self.override_result
+
+        # Check if pdf_bytes contains an embedded mock payload
+        marker = b"LEDGERPILOT_MOCK_DATA:"
+        if marker in pdf_bytes:
+            try:
+                start = pdf_bytes.find(marker) + len(marker)
+                end = pdf_bytes.find(b"\n", start)
+                if end == -1:
+                    raw_json = pdf_bytes[start:].decode("utf-8", errors="ignore").strip()
+                else:
+                    raw_json = pdf_bytes[start:end].decode("utf-8", errors="ignore").strip()
+                data = json.loads(raw_json)
+                return ExtractedInvoice(**data)
+            except Exception:
+                pass
 
         # Default deterministic test extraction
         return ExtractedInvoice(
