@@ -10,6 +10,8 @@ import { ToleranceVarianceCard } from '../components/review/ToleranceVarianceCar
 import { LineItemTable } from '../components/review/LineItemTable'
 import { ApprovalActionBar } from '../components/review/ApprovalActionBar'
 import { RejectReasonModal } from '../components/review/RejectReasonModal'
+import { PipelineProgressBar } from '../components/pipeline/PipelineProgressBar'
+import { useInvoiceStream } from '../hooks/useInvoiceStream'
 import {
   useApproveInvoice,
   useRejectInvoice,
@@ -28,22 +30,25 @@ export const InvoiceDetailPage: React.FC<InvoiceDetailPageProps> = ({ invoiceId 
     queryFn: async () => {
       return await apiClient.get<any>(`/api/v1/invoices/${invoiceId}`)
     },
-    refetchInterval: (query) => {
-      const status = query.state.data?.invoice?.status
-      if (['UPLOADED', 'EXTRACTING', 'MATCHING', 'ANOMALY_CHECK'].includes(status)) {
-        return 2000
-      }
-      return false
-    },
   })
-
-  const approveMutation = useApproveInvoice(invoiceId)
-  const rejectMutation = useRejectInvoice(invoiceId)
 
   const invoice = data?.invoice
   const vendor = data?.vendor
   const lineItems = data?.line_items || []
   const anomalies = data?.anomalies || []
+
+  // Connect real-time Server-Sent Events stream
+  const {
+    status: liveStatus,
+    progress: liveProgress,
+    latestMessage,
+    isConnected,
+  } = useInvoiceStream(invoiceId, invoice?.status)
+
+  const currentStatus = liveStatus || invoice?.status || 'UPLOADED'
+
+  const approveMutation = useApproveInvoice(invoiceId)
+  const rejectMutation = useRejectInvoice(invoiceId)
 
   const pdfUrl = invoice?.storage_key
     ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/v1/invoices/file/${invoice.storage_key}`
@@ -79,15 +84,23 @@ export const InvoiceDetailPage: React.FC<InvoiceDetailPageProps> = ({ invoiceId 
       {/* Action Bar */}
       <ApprovalActionBar
         invoiceNumber={invoice.invoice_number || 'PENDING'}
-        status={invoice.status}
+        status={currentStatus}
         onApprove={() => approveMutation.mutate()}
         isApproving={approveMutation.isPending}
         onRefresh={() => refetch()}
         isRefreshing={isFetching}
       />
 
+      {/* Real-time Pipeline Progress Stepper */}
+      <PipelineProgressBar
+        status={currentStatus}
+        progress={liveProgress}
+        message={latestMessage}
+        isConnected={isConnected}
+      />
+
       {/* Split-Screen Workspace (50% PDF Viewer / 50% Review Panel) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-190px)] min-h-[620px]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-290px)] min-h-[580px]">
         {/* Left: Document PDF Viewer */}
         <div className="h-full">
           {pdfUrl ? (
