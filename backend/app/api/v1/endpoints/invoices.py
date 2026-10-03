@@ -273,3 +273,73 @@ async def reject_invoice(
     await session.commit()
 
     return {"message": "Invoice rejected", "status": invoice.status.value, "reason": rejection.reason}
+
+
+class LineItemUpdateRequest(BaseModel):
+    description: Optional[str] = None
+    quantity: Optional[float] = None
+    unit_price: Optional[float] = None
+
+
+@router.patch("/{invoice_id}/line-items/{line_item_id}")
+async def update_line_item(
+    invoice_id: str,
+    line_item_id: str,
+    update_data: LineItemUpdateRequest,
+    current_user: ClerkUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    invoice = await session.get(Invoice, invoice_id)
+    if not invoice or invoice.user_id != current_user.user_id:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    line_item = await session.get(LineItem, line_item_id)
+    if not line_item or line_item.invoice_id != invoice.id:
+        raise HTTPException(status_code=404, detail="Line item not found")
+
+    if update_data.description is not None:
+        line_item.description = update_data.description
+    if update_data.quantity is not None:
+        line_item.quantity = update_data.quantity
+    if update_data.unit_price is not None:
+        line_item.unit_price = update_data.unit_price
+
+    line_item.total_amount = round(line_item.quantity * line_item.unit_price, 2)
+    session.add(line_item)
+    await session.commit()
+    await session.refresh(line_item)
+
+    # Recalculate invoice subtotal and grand total
+    stmt = select(LineItem).where(LineItem.invoice_id == invoice.id)
+    items_res = await session.exec(stmt)
+    all_items = list(items_res.all())
+    new_subtotal = round(sum(i.total_amount for i in all_items), 2)
+    invoice.subtotal = new_subtotal
+    invoice.total_amount = round(new_subtotal + invoice.tax_amount, 2)
+    session.add(invoice)
+
+    # Audit log entry
+    audit = AuditLog(
+        user_id=current_user.user_id,
+        entity_type="LINE_ITEM",
+        entity_id=line_item.id,
+        action="UPDATED",
+        actor_type="USER",
+        actor_id=current_user.user_id,
+        metadata_json=json.dumps({
+            "line_number": line_item.line_number,
+            "new_qty": line_item.quantity,
+            "new_unit_price": line_item.unit_price,
+            "new_total": line_item.total_amount,
+        }),
+    )
+    session.add(audit)
+    await session.commit()
+
+    return {
+        "message": "Line item updated",
+        "line_item": line_item,
+        "invoice_subtotal": invoice.subtotal,
+        "invoice_total": invoice.total_amount,
+    }
+

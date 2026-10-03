@@ -89,3 +89,46 @@ async def test_idempotency_key_header():
         res2 = await ac.post("/api/v1/invoices/upload", headers=auth_headers, files=files2)
         assert res2.status_code == 201
         assert res2.json()["invoice_id"] == inv1_id
+
+
+@pytest.mark.anyio
+async def test_update_line_item():
+    user_id = f"user_patch_{uuid.uuid4().hex}"
+    auth_headers = {"Authorization": f"Bearer test_token_{user_id}"}
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        dummy_pdf = io.BytesIO(b"%PDF-1.4 test payload for patch line item")
+        files = {"file": ("test_patch.pdf", dummy_pdf, "application/pdf")}
+        upload_res = await ac.post("/api/v1/invoices/upload", headers=auth_headers, files=files)
+        assert upload_res.status_code == 201
+        invoice_id = upload_res.json()["invoice_id"]
+
+        # Directly insert a test line item into this invoice
+        from app.db.session import async_session_factory
+        from app.models.line_item import LineItem
+        async with async_session_factory() as session:
+            li = LineItem(
+                invoice_id=invoice_id,
+                line_number=1,
+                description="Initial Item",
+                quantity=2.0,
+                unit_price=50.0,
+                total_amount=100.0,
+            )
+            session.add(li)
+            await session.commit()
+            await session.refresh(li)
+            line_item_id = li.id
+
+        # Update line item quantity from 2 to 4 (unit price 50 -> total 200)
+        patch_res = await ac.patch(
+            f"/api/v1/invoices/{invoice_id}/line-items/{line_item_id}",
+            headers=auth_headers,
+            json={"quantity": 4.0},
+        )
+        assert patch_res.status_code == 200
+        patch_data = patch_res.json()
+        assert patch_data["line_item"]["quantity"] == 4.0
+        assert patch_data["line_item"]["total_amount"] == 200.0
+        assert patch_data["invoice_subtotal"] == 200.0
+
