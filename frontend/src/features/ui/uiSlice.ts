@@ -6,6 +6,7 @@ export interface UIState {
   selectedLineNumber: number | null
   activeTab: 'invoices' | 'upload' | 'audit' | 'settings'
   isRejectModalOpen: boolean
+  selectedInvoiceId: string | null
 }
 
 const initialState: UIState = {
@@ -14,6 +15,7 @@ const initialState: UIState = {
   selectedLineNumber: null,
   activeTab: 'invoices',
   isRejectModalOpen: false,
+  selectedInvoiceId: null,
 }
 
 export const uiSlice = createSlice({
@@ -47,6 +49,9 @@ export const uiSlice = createSlice({
     setRejectModalOpen: (state, action: PayloadAction<boolean>) => {
       state.isRejectModalOpen = action.payload
     },
+    setSelectedInvoiceId: (state, action: PayloadAction<string | null>) => {
+      state.selectedInvoiceId = action.payload
+    },
   },
 })
 
@@ -60,6 +65,7 @@ export const {
   setSelectedLineNumber,
   setActiveTab,
   setRejectModalOpen,
+  setSelectedInvoiceId,
 } = uiSlice.actions
 
 export default uiSlice.reducer

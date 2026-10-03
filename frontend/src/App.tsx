@@ -13,12 +13,14 @@ import {
 } from 'lucide-react'
 import { AppShell } from './components/layout/AppShell'
 import { useAppDispatch, useAppSelector } from './app/store'
-import { setActiveTab } from './features/ui/uiSlice'
+import { setActiveTab, setSelectedInvoiceId } from './features/ui/uiSlice'
 import { apiClient } from './lib/api-client'
+import { FileUploadDropzone } from './components/upload/FileUploadDropzone'
+import { InvoiceDetailPage } from './pages/InvoiceDetailPage'
 
 export default function App() {
   const dispatch = useAppDispatch()
-  const activeTab = useAppSelector((state) => state.ui.activeTab)
+  const { activeTab, selectedInvoiceId } = useAppSelector((state) => state.ui)
 
   // Fetch invoices using TanStack Query
   const { data: invoices, isLoading, refetch, isFetching } = useQuery({
@@ -45,6 +47,15 @@ export default function App() {
     },
     enabled: activeTab === 'audit',
   })
+
+  // If an invoice is currently selected for review, display split-screen workspace
+  if (selectedInvoiceId) {
+    return (
+      <AppShell>
+        <InvoiceDetailPage invoiceId={selectedInvoiceId} />
+      </AppShell>
+    )
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -187,16 +198,12 @@ export default function App() {
                 <FileText className="h-6 w-6" />
               </div>
               <h3 className="text-sm font-medium text-slate-200">No invoices in queue</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto mb-6">
                 Upload your first accounts payable PDF to trigger autonomous vision extraction and 3-way reconciliation.
               </p>
-              <button
-                onClick={() => dispatch(setActiveTab('upload'))}
-                className="mt-4 inline-flex items-center space-x-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-medium text-white hover:bg-indigo-500 transition-colors cursor-pointer"
-              >
-                <UploadCloud className="h-3.5 w-3.5" />
-                <span>Upload Now</span>
-              </button>
+              <div className="max-w-md mx-auto">
+                <FileUploadDropzone />
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -250,7 +257,7 @@ export default function App() {
                       <td className="py-3.5 px-4 text-right">
                         <button
                           onClick={() => {
-                            toast.info(`Opening review for invoice ${inv.invoice_number}`)
+                            dispatch(setSelectedInvoiceId(inv.id))
                           }}
                           className="inline-flex items-center space-x-1 text-indigo-400 hover:text-indigo-300 font-medium cursor-pointer"
                         >
@@ -267,26 +274,16 @@ export default function App() {
         </div>
       )}
 
-      {/* Upload Launcher View */}
+      {/* Upload View */}
       {activeTab === 'upload' && (
-        <div className="max-w-2xl mx-auto rounded-xl border border-slate-800 bg-slate-900/40 p-8 shadow-sm text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400 mb-4 border border-indigo-500/20">
-            <UploadCloud className="h-7 w-7" />
+        <div className="max-w-2xl mx-auto rounded-xl border border-slate-800 bg-slate-900/40 p-8 shadow-sm">
+          <div className="text-center mb-6">
+            <h2 className="text-lg font-semibold text-white">Upload Accounts-Payable Invoice</h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Autonomous pipeline rasterizes PDF, extracts line items with Groq LPU Vision, and executes 3-way matching.
+            </p>
           </div>
-          <h2 className="text-lg font-semibold text-white">Upload Accounts-Payable Invoice</h2>
-          <p className="text-xs text-slate-400 mt-1 mb-6 max-w-md mx-auto">
-            Autonomous pipeline rasterizes PDF, extracts line items with Groq LPU Vision, and executes 3-way matching.
-          </p>
-
-          <div
-            onClick={() => {
-              toast.info('Step 7 will implement interactive drag & drop and split-screen document viewer.')
-            }}
-            className="border-2 border-dashed border-slate-700/80 hover:border-indigo-500 transition-colors rounded-xl p-10 cursor-pointer bg-slate-950/40"
-          >
-            <p className="text-sm font-medium text-slate-200">Drag & drop invoice PDF, or click to browse</p>
-            <p className="text-xs text-slate-500 mt-1">Multi-page PDF up to 15MB</p>
-          </div>
+          <FileUploadDropzone />
         </div>
       )}
 
@@ -321,7 +318,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Settings / Telemetry View */}
+      {/* Settings View */}
       {activeTab === 'settings' && (
         <div className="max-w-2xl rounded-xl border border-slate-800 bg-slate-900/40 p-6 shadow-sm space-y-4">
           <h2 className="text-base font-medium text-white">System Telemetry & Provider Architecture</h2>
